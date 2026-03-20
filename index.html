@@ -47,12 +47,39 @@ const REACTIONS = [
   { emoji:"🤯", label:"Volado" },
 ];
 
-const AVATAR_EMOJIS = ["😎","🤠","🦁","🐺","🦊","🐸","👾","🤖","🎃","🦄","🐉","🌚","💀","🎯","⚡","🔥","🌊","🎸","🏔️","🚀"];
-const AVATAR_COLORS = ["#7C3AED","#2563EB","#DC2626","#D97706","#059669","#DB2777","#0891B2","#9333EA","#EA580C","#65A30D"];
+const AVATAR_EMOJIS = ["😎","🤠","🦊","🐸","🦄","💀","⚡","🏔️"];
+const AVATAR_COLORS = ["#7C3AED","#2563EB","#DC2626","#EA580C","#059669","#DB2777","#0891B2","#D97706"];
 
 const MAX_VOTES = 2;
 const MAX_NOMS  = 4;
 const MAX_ARGS_CHARS = 280;
+const MAX_PLAYERS = 4;
+
+// ─── BOT CONSTANTS ───────────────────────────────────────────────
+const BOT_NAMES  = ["ROMA Bot","Turbo Mk.1","Mega Bot","Ultra Bot"];
+const BOT_EMOJIS = ["🤖","👾","🦾","⚙️"];
+const BOT_COLORS = ["#6366F1","#8B5CF6","#4F46E5","#818CF8"];
+const BOT_ARGS   = [
+  "Es la elección más obvia, no hay debate.",
+  "Icónico. No necesita explicación.",
+  "Sin este pick, el Mount Rushmore no está completo.",
+  "La elección más sólida. Se habla solo.",
+  "¿Alguien puede discutir esto? Exacto.",
+  "El clásico que nunca falla.",
+  "Merece estar aquí y todos lo saben.",
+  "La opción más consistente de todas.",
+];
+function generateBotPicks(tema) {
+  const words = tema.split(" ").filter(w => w.length > 3);
+  const key   = words[words.length - 1] || tema.split(" ")[0] || "eso";
+  const pool  = [
+    `El número 1 de ${key}`, `El clásico de ${key}`, `El rey de ${key}`,
+    `La leyenda de ${key}`,  `El imprescindible`,     `El mejor de toda la historia`,
+    `El que nunca decepciona`, `El que cambió todo`,  `El favorito de siempre`,
+    `El indiscutible`,
+  ];
+  return [...pool].sort(() => Math.random() - 0.5).slice(0, 4);
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 function getMyPlayerId() {
@@ -374,6 +401,7 @@ function PlayersList({ players, hostId }) {
           <div style={{flex:1}}>
             <div style={{fontWeight:600, fontSize:14}}>{p.name}</div>
             {p.pid === hostId && <Tag color={C.gold}>Host 👑</Tag>}
+            {p.isBot && <Tag color="#6366F1">Bot 🤖</Tag>}
           </div>
         </div>
       ))}
@@ -385,15 +413,47 @@ function PlayersList({ players, hostId }) {
 // SCREENS
 // ═══════════════════════════════════════════════════════════════
 
+// ─── MOUNTAIN SVG ────────────────────────────────────────────────
+function MountainSVG({ style={} }) {
+  return (
+    <svg viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg"
+         style={{width:"100%",maxWidth:300,display:"block",margin:"0 auto",...style}}>
+      <defs>
+        <linearGradient id="mg" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+          <stop offset="0%"   stopColor="#7C3AED"/>
+          <stop offset="50%"  stopColor="#A855F7"/>
+          <stop offset="100%" stopColor="#EC4899"/>
+        </linearGradient>
+        <linearGradient id="mg2" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+          <stop offset="0%"   stopColor="#7C3AED" stopOpacity="0.3"/>
+          <stop offset="100%" stopColor="#EC4899" stopOpacity="0.3"/>
+        </linearGradient>
+      </defs>
+      {/* Glow shadow layer */}
+      <path d="M0,80 L0,68 L20,62 L45,18 L68,52 L100,28 L128,58 L162,12 L192,52 L225,36 L252,60 L280,66 L280,80 Z"
+            fill="url(#mg2)" transform="translate(0,6)"/>
+      {/* 4 mountain peaks */}
+      <path d="M0,80 L0,68 L20,62 L45,18 L68,52 L100,28 L128,58 L162,12 L192,52 L225,36 L252,60 L280,66 L280,80 Z"
+            fill="url(#mg)"/>
+      {/* Snow caps */}
+      <polygon points="45,18 34,34 56,34" fill="white" opacity="0.25"/>
+      <polygon points="100,28 90,42 110,42" fill="white" opacity="0.2"/>
+      <polygon points="162,12 148,30 176,30" fill="white" opacity="0.3"/>
+      <polygon points="225,36 215,50 235,50" fill="white" opacity="0.18"/>
+    </svg>
+  );
+}
+
 // ─── HOME ────────────────────────────────────────────────────────
 function HomeScreen({ onCreateRoom, onJoinRoom }) {
-  const [name, setName]       = useState("");
-  const [emoji, setEmoji]     = useState("😎");
-  const [color, setColor]     = useState("#7C3AED");
-  const [tab, setTab]         = useState("create"); // create | join
+  const [name, setName]         = useState("");
+  const [emoji, setEmoji]       = useState("😎");
+  const [color, setColor]       = useState("#7C3AED");
+  const [tab, setTab]           = useState("create"); // create | join
+  const [step, setStep]         = useState("setup"); // setup | chooseCount
   const [joinCode, setJoinCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr]         = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [err, setErr]           = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -401,10 +461,15 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
     if (sala) { setJoinCode(sala.toUpperCase()); setTab("join"); }
   }, []);
 
-  async function handleCreate() {
+  function handleCreateClick() {
     if (!name.trim()) { setErr("Escribe tu nombre"); return; }
-    setLoading(true); setErr("");
-    await onCreateRoom(name.trim(), emoji, color);
+    setErr("");
+    setStep("chooseCount");
+  }
+
+  async function handleChooseCount(numPlayers) {
+    setLoading(true);
+    await onCreateRoom(name.trim(), emoji, color, numPlayers);
     setLoading(false);
   }
 
@@ -417,6 +482,13 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
     setLoading(false);
   }
 
+  const PLAYER_OPTIONS = [
+    { num:1, label:"Solo yo",        bots:3, desc:"1 real + 3 bots" },
+    { num:2, label:"2 jugadores",    bots:2, desc:"2 reales + 2 bots" },
+    { num:3, label:"3 jugadores",    bots:1, desc:"3 reales + 1 bot" },
+    { num:4, label:"4 jugadores",    bots:0, desc:"4 jugadores reales" },
+  ];
+
   return (
     <div style={{
       minHeight:"100vh", display:"flex", flexDirection:"column",
@@ -426,9 +498,9 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
       <GlobalStyles/>
 
       {/* Logo */}
-      <div className="fadeIn" style={{textAlign:"center",marginBottom:32}}>
-        <div style={{fontSize:56}}>🏔️</div>
-        <h1 style={{fontSize:42,fontWeight:900,letterSpacing:-1,
+      <div className="fadeIn" style={{textAlign:"center",marginBottom:24,width:"100%",maxWidth:420}}>
+        <MountainSVG style={{marginBottom:4}}/>
+        <h1 style={{fontSize:42,fontWeight:900,letterSpacing:-1,lineHeight:1,
           background:`linear-gradient(135deg,${C.purpleLt},${C.pink})`,
           WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>
           ROMA RUSH
@@ -436,27 +508,76 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
         <p style={{color:C.textSm,marginTop:6,fontSize:15}}>El juego del Mount Rushmore</p>
       </div>
 
+      {/* ── STEP: CHOOSE COUNT ────────────────────────────── */}
+      {step === "chooseCount" ? (
+        <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:32,marginBottom:6}}>👥</div>
+            <h2 style={{fontSize:20,fontWeight:800}}>¿Cuántos jugadores son?</h2>
+            <p style={{color:C.textSm,fontSize:13,marginTop:4}}>Los espacios restantes los llena la IA</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {PLAYER_OPTIONS.map(opt => (
+              <button key={opt.num} onClick={()=>handleChooseCount(opt.num)}
+                disabled={loading}
+                style={{
+                  background:"rgba(255,255,255,0.06)", border:`1px solid ${C.border}`,
+                  borderRadius:14, padding:"14px 18px", cursor:"pointer",
+                  display:"flex", alignItems:"center", justifyContent:"space-between",
+                  transition:"all 0.15s", opacity:loading?0.5:1,
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)";e.currentTarget.style.borderColor=C.purple;}}
+                onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.borderColor=C.border;}}
+              >
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{
+                    width:36,height:36,borderRadius:"50%",
+                    background:`linear-gradient(135deg,${C.purple},${C.pink})`,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    fontWeight:900,fontSize:16,color:"#fff"
+                  }}>{opt.num}</div>
+                  <div style={{textAlign:"left"}}>
+                    <div style={{fontWeight:700,fontSize:15,color:C.text}}>{opt.label}</div>
+                    <div style={{fontSize:12,color:C.textSm,marginTop:1}}>{opt.desc}</div>
+                  </div>
+                </div>
+                {opt.bots > 0 && (
+                  <div style={{
+                    background:`${C.purple}22`, border:`1px solid ${C.purple}44`,
+                    borderRadius:8,padding:"3px 10px",fontSize:11,color:C.purpleLt,fontWeight:600
+                  }}>+{opt.bots} 🤖</div>
+                )}
+              </button>
+            ))}
+          </div>
+          <button onClick={()=>setStep("setup")} style={{
+            marginTop:14,width:"100%",background:"none",border:"none",
+            color:C.textSm,fontSize:13,cursor:"pointer",padding:8
+          }}>← Volver</button>
+        </Card>
+      ) : (
+      /* ── STEP: SETUP ────────────────────────────────── */
       <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
         {/* Avatar picker */}
         <div style={{marginBottom:20}}>
           <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:8}}>Tu avatar</div>
           <div style={{display:"flex",gap:10,alignItems:"center"}}>
             <Avatar emoji={emoji} color={color} size={56}
-              style={{border:`3px solid ${color}55`}}/>
+              style={{border:`3px solid ${color}55`,flexShrink:0}}/>
             <div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
                 {AVATAR_EMOJIS.map(e => (
                   <button key={e} onClick={()=>setEmoji(e)} style={{
-                    fontSize:18, background:emoji===e?"rgba(255,255,255,0.15)":"transparent",
+                    fontSize:20, background:emoji===e?"rgba(255,255,255,0.15)":"transparent",
                     border:emoji===e?`1px solid ${C.border}`:"1px solid transparent",
-                    borderRadius:6, cursor:"pointer", padding:"2px 4px"
+                    borderRadius:6, cursor:"pointer", padding:"3px 5px"
                   }}>{e}</button>
                 ))}
               </div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                 {AVATAR_COLORS.map(c => (
                   <button key={c} onClick={()=>setColor(c)} style={{
-                    width:22,height:22,borderRadius:"50%",background:c,border:"none",
+                    width:24,height:24,borderRadius:"50%",background:c,border:"none",
                     cursor:"pointer", outline:color===c?`2px solid white`:"none",
                     outlineOffset:2
                   }}/>
@@ -471,7 +592,7 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
           <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:6}}>Tu nombre</div>
           <input
             value={name} onChange={e=>setName(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&(tab==="create"?handleCreate():handleJoin())}
+            onKeyDown={e=>e.key==="Enter"&&(tab==="create"?handleCreateClick():handleJoin())}
             placeholder="¿Cómo te llamas?"
             style={{
               width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
@@ -484,7 +605,7 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
         {/* Tabs */}
         <div style={{display:"flex",gap:6,marginBottom:16}}>
           {["create","join"].map(t => (
-            <button key={t} onClick={()=>setTab(t)} style={{
+            <button key={t} onClick={()=>{setTab(t);setErr("");}} style={{
               flex:1, padding:"9px 0", borderRadius:10, fontWeight:600, fontSize:14,
               background:tab===t?C.purple:"rgba(255,255,255,0.06)",
               color:tab===t?"#fff":C.textMd,
@@ -511,13 +632,14 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
 
         {err && <div style={{color:C.red,fontSize:13,marginBottom:10,textAlign:"center"}}>{err}</div>}
 
-        <Btn size="lg" style={{width:"100%"}} onClick={tab==="create"?handleCreate:handleJoin} disabled={loading}>
+        <Btn size="lg" style={{width:"100%"}} onClick={tab==="create"?handleCreateClick:handleJoin} disabled={loading}>
           {loading ? <Spinner/> : tab==="create" ? "🚀 Crear sala" : "🎮 Unirse"}
         </Btn>
       </Card>
+      )}
 
       <p style={{color:C.textSm,fontSize:12,marginTop:20,textAlign:"center"}}>
-        Máx 8 jugadores · Gratis para siempre 🎉
+        Máx 4 jugadores · Gratis para siempre 🎉
       </p>
     </div>
   );
@@ -527,6 +649,8 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
 function LobbyScreen({ roomCode, roomData, myId, isHost, onStart }) {
   const players = roomData?.players || {};
   const playerCount = Object.keys(players).length;
+  const botCount = roomData?.botCount || 0;
+  const realCount = playerCount - botCount;
   const shareUrl = `${window.location.origin}${window.location.pathname}?sala=${roomCode}`;
   const [copied, setCopied] = useState(false);
 
@@ -561,7 +685,8 @@ function LobbyScreen({ roomCode, roomData, myId, isHost, onStart }) {
           </div>
         </div>
 
-        {/* Share link */}
+        {/* Share link — only show if there are open real player slots */}
+        {(MAX_PLAYERS - botCount) > 1 && (
         <Card style={{marginBottom:16}} className="fadeIn">
           <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:8}}>🔗 Invita a tus amigos</div>
           <div style={{display:"flex",gap:8}}>
@@ -574,13 +699,14 @@ function LobbyScreen({ roomCode, roomData, myId, isHost, onStart }) {
             </Btn>
           </div>
         </Card>
+        )}
 
         {/* Players */}
         <Card style={{marginBottom:16}} className="fadeIn">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontWeight:700,fontSize:15}}>👥 Jugadores ({playerCount}/8)</div>
-            {playerCount < 2 && (
-              <Tag color={C.gold}>Esperando más...</Tag>
+            <div style={{fontWeight:700,fontSize:15}}>👥 Jugadores ({realCount}/{MAX_PLAYERS - botCount})</div>
+            {botCount > 0 && (
+              <Tag color={C.purple}>{botCount} bot{botCount>1?"s":""} 🤖</Tag>
             )}
           </div>
           <PlayersList players={players} hostId={roomData?.hostId}/>
@@ -589,8 +715,10 @@ function LobbyScreen({ roomCode, roomData, myId, isHost, onStart }) {
         {/* Start button (host only) */}
         {isHost ? (
           <Btn size="lg" style={{width:"100%"}} onClick={onStart}
-            disabled={playerCount < 2}>
-            {playerCount < 2 ? "⏳ Esperando jugadores..." : "🎮 Empezar juego"}
+            disabled={botCount === 0 && playerCount < 2}>
+            {botCount === 0 && playerCount < 2
+              ? "⏳ Esperando jugadores..."
+              : "🎮 Empezar juego"}
           </Btn>
         ) : (
           <div style={{
@@ -1521,17 +1649,134 @@ function RomaRush() {
     prevChatLen.current = len;
   }, [roomData?.chat, chatOpen]);
 
-  async function createRoom(name, emoji, color) {
+  // ─── BOT AUTO-PLAY ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!roomData || !roomCode) return;
+    const phase   = roomData.phase;
+    const players = roomData.players || {};
+    const tema    = roomData.tema    || "";
+    if (roomData.hostId !== myId) return; // only host drives bots
+
+    const bots = Object.values(players).filter(p => p.isBot);
+    if (bots.length === 0) return;
+
+    const timers = [];
+
+    if (phase === PHASE.NOMINAR) {
+      const noms = roomData.nominations || {};
+      bots.forEach(bot => {
+        if ((noms[bot.pid]||[]).filter(Boolean).length >= 4) return;
+        const t = setTimeout(async () => {
+          const s = await window.db.ref(`rooms/${roomCode}/nominations/${bot.pid}`).once("value");
+          if (s.exists() && (s.val()||[]).filter(Boolean).length >= 4) return;
+          const picks = generateBotPicks(tema);
+          await window.db.ref(`rooms/${roomCode}/nominations/${bot.pid}`).set(picks);
+        }, 2000 + Math.random() * 3000);
+        timers.push(t);
+      });
+    }
+
+    if (phase === PHASE.ARGUMENTOS) {
+      const existArgs = roomData.arguments   || {};
+      const noms      = roomData.nominations || {};
+      bots.forEach(bot => {
+        if ((existArgs[bot.pid]||[]).some(Boolean)) return;
+        const t = setTimeout(async () => {
+          const s = await window.db.ref(`rooms/${roomCode}/arguments/${bot.pid}`).once("value");
+          if (s.exists() && (s.val()||[]).some(Boolean)) return;
+          const botNoms = noms[bot.pid] || ["","","",""];
+          const botArgs = botNoms.map(() =>
+            BOT_ARGS[Math.floor(Math.random() * BOT_ARGS.length)]
+          );
+          await window.db.ref(`rooms/${roomCode}/arguments/${bot.pid}`).set(botArgs);
+        }, 2000 + Math.random() * 3000);
+        timers.push(t);
+      });
+    }
+
+    if (phase === PHASE.VETO) {
+      const vetoes = roomData.vetoes        || {};
+      const noms   = roomData.nominations   || {};
+      bots.forEach(bot => {
+        if (vetoes[bot.pid]) return;
+        const t = setTimeout(async () => {
+          const s = await window.db.ref(`rooms/${roomCode}/vetoes/${bot.pid}`).once("value");
+          if (s.exists()) return;
+          const otherPicks = [];
+          Object.entries(noms).forEach(([pid, pnoms]) => {
+            if (pid === bot.pid) return;
+            (pnoms||[]).forEach((nom, i) => {
+              if (nom) otherPicks.push({ pid, idx:i, nom });
+            });
+          });
+          if (otherPicks.length === 0) return;
+          const pick = otherPicks[Math.floor(Math.random() * otherPicks.length)];
+          await window.db.ref(`rooms/${roomCode}/vetoes/${bot.pid}`).set({
+            pid: pick.pid, idx: pick.idx, nom: pick.nom
+          });
+        }, 1500 + Math.random() * 3000);
+        timers.push(t);
+      });
+    }
+
+    if (phase === PHASE.VOTAR) {
+      const allVotes = roomData.votes        || {};
+      const noms     = roomData.nominations  || {};
+      const vetoes   = roomData.vetoes       || {};
+      bots.forEach(bot => {
+        if (allVotes[bot.pid]) return;
+        const t = setTimeout(async () => {
+          const s = await window.db.ref(`rooms/${roomCode}/votes/${bot.pid}`).once("value");
+          if (s.exists()) return;
+          const surviving = [];
+          Object.entries(noms).forEach(([pid, pnoms]) => {
+            (pnoms||[]).forEach((nom, idx) => {
+              if (!nom) return;
+              const vetoed = Object.values(vetoes).some(v => v.pid===pid && v.idx===idx);
+              if (!vetoed && pid !== bot.pid) surviving.push(`${pid}_${idx}`);
+            });
+          });
+          if (surviving.length === 0) return;
+          const shuffled = [...surviving].sort(() => Math.random() - 0.5);
+          const picks    = shuffled.slice(0, Math.min(MAX_VOTES, shuffled.length));
+          await window.db.ref(`rooms/${roomCode}/votes/${bot.pid}`).set(picks);
+        }, 2000 + Math.random() * 3000);
+        timers.push(t);
+      });
+    }
+
+    return () => timers.forEach(clearTimeout);
+  }, [roomData?.phase, roomCode]);
+
+  async function createRoom(name, emoji, color, numPlayers) {
     const code = genRoomCode();
+    const realCount = numPlayers || 1;
+    const botCount  = MAX_PLAYERS - realCount;
+
+    // Build players object: real host + bots
+    const players = {
+      [myId]: { pid:myId, name, emoji, color, joinedAt:Date.now() }
+    };
+    for (let i = 0; i < botCount; i++) {
+      const botId = `bot_${i}_${Date.now()}`;
+      players[botId] = {
+        pid: botId,
+        name:  BOT_NAMES[i]  || `Bot ${i+1}`,
+        emoji: BOT_EMOJIS[i] || "🤖",
+        color: BOT_COLORS[i] || "#6366F1",
+        joinedAt: Date.now() + i + 1,
+        isBot: true
+      };
+    }
+
     await window.db.ref(`rooms/${code}`).set({
       phase: PHASE.LOBBY,
       hostId: myId,
       tema: "",
       revealIdx: -1,
       createdAt: Date.now(),
-      players: {
-        [myId]: { pid:myId, name, emoji, color, joinedAt:Date.now() }
-      }
+      botCount,
+      players
     });
     window.history.pushState({}, "", `?sala=${code}`);
     setRoomCode(code);
@@ -1542,7 +1787,7 @@ function RomaRush() {
     if (!snap.exists()) return { error:"Sala no encontrada 😅" };
     const data = snap.val();
     const playerCount = Object.keys(data.players||{}).length;
-    if (playerCount >= 8) return { error:"La sala está llena (máx 8)" };
+    if (playerCount >= MAX_PLAYERS) return { error:`La sala está llena (máx ${MAX_PLAYERS})` };
     await window.db.ref(`rooms/${code}/players/${myId}`).set({
       pid:myId, name, emoji, color, joinedAt:Date.now()
     });
@@ -1669,6 +1914,7 @@ function RomaRush() {
 
 // Mount
 ReactDOM.createRoot(document.getElementById("root")).render(<RomaRush/>);
+
   </script>
 </body>
 </html>
