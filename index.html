@@ -1928,25 +1928,22 @@ function FinalScreen({ roomCode, roomData, myId }) {
           <p style={{color:"#FDE68A",marginTop:4,fontWeight:600,fontSize:16}}>{tema}</p>
         </div>
 
-        {/* Top 4 */}
-        <div className="fadeIn" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
-          {top4.map((p,i) => (
-                    {/* Scores */}
+        {/* Scores */}
         <Card className="fadeIn" style={{marginBottom:16}}>
           <div style={{fontWeight:700,marginBottom:10}}>🏆 Puntuación de esta ronda</div>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {Object.entries(scores)
               .sort((a,b)=>b[1]-a[1])
               .map(([pid,pts]) => {
-                const p = players[pid];
-                if (!p) return null;
+                const pl = players[pid];
+                if (!pl) return null;
                 return (
                   <div key={pid} style={{
                     display:"flex",alignItems:"center",gap:10,
                     background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px"
                   }}>
-                    <Avatar emoji={p.emoji} color={p.color} size={32}/>
-                    <div style={{flex:1,fontWeight:600,fontSize:14}}>{p.name}</div>
+                    <Avatar emoji={pl.emoji} color={pl.color} size={32}/>
+                    <div style={{flex:1,fontWeight:600,fontSize:14}}>{pl.name}</div>
                     <div style={{
                       background:`${C.gold}22`,border:`1px solid ${C.gold}44`,
                       borderRadius:8,padding:"4px 12px",fontWeight:800,color:C.gold,fontSize:16
@@ -1958,7 +1955,10 @@ function FinalScreen({ roomCode, roomData, myId }) {
           </div>
         </Card>
 
-<Card key={i} style={{
+        {/* Top 4 */}
+        <div className="fadeIn" style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+          {top4.map((p,i) => (
+            <Card key={i} style={{
               border:`1px solid ${i===0?C.gold:C.border}`,
               boxShadow:i===0?`0 0 30px ${C.gold}44`:"none",
             }}>
