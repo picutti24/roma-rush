@@ -1,31 +1,27 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>ROMA RUSH 🏔️</title>
-  <style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#0A0614; overflow-x:hidden; }</style>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ROMA RUSH 🏔️</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f0f1a;color:#f0f0f0}
+button{font-family:inherit}
+input{font-family:inherit;color:#f0f0f0}
+input::placeholder{color:#666}
+.fadeIn{animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script>
-    firebase.initializeApp({
-      apiKey:            "AIzaSyBwrwi5yW8CRm_OgjcXi4F7mzCtfUq7-Yw",
-      authDomain:        "roma-rush-7ae1a.firebaseapp.com",
-      databaseURL:       "https://roma-rush-7ae1a-default-rtdb.firebaseio.com",
-      projectId:         "roma-rush-7ae1a",
-      storageBucket:     "roma-rush-7ae1a.firebasestorage.app",
-      messagingSenderId: "794991989458",
-      appId:             "1:794991989458:web:10d3dca11e42f59431530b"
-    });
-    window.db = firebase.database();
-  </script>
-  <script type="text/babel">
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
 // ═══════════════════════════════════════════════════════════════
 // ROMA RUSH — Firebase Multiplayer
 // ═══════════════════════════════════════════════════════════════
@@ -592,7 +588,7 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
   const [emoji, setEmoji]             = useState("😎");
   const [color, setColor]             = useState("#7C3AED");
   const [tab, setTab]                 = useState("create"); // create | join
-  const [step, setStep]               = useState("setup"); // setup | avatar
+  const [step, setStep]               = useState("setup"); // setup | avatar | join
   const [chosenCount, setChosenCount] = useState(1);
   const [joinCode, setJoinCode]       = useState("");
   const [loading, setLoading]         = useState(false);
@@ -601,7 +597,7 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sala = params.get("sala");
-    if (sala) { setJoinCode(sala.toUpperCase()); setTab("join"); setStep("avatar"); }
+    if (sala) { setJoinCode(sala.toUpperCase()); }
   }, []);
 
   function handleChooseCount(numPlayers) {
@@ -660,65 +656,9 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
         <p style={{color:C.textSm,marginTop:6,fontSize:15}}>El juego del Mount Rushmore</p>
       </div>
 
-      {/* ── STEP: SETUP ─ nombre + cuántos jugadores + instrucciones */}
+      {/* ── STEP: SETUP ─ nombre + cuántos jugadores arriba / instrucciones abajo */}
       {step === "setup" && (
         <>
-          {/* Accordions */}
-          <div style={{width:"100%",maxWidth:420,marginBottom:16}}>
-            <AccordionPanel icon="📖" title="¿Cómo se juega?" defaultOpen={false}>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {[
-                  {n:1, emoji:"🎯", text:"El host elige el tema del Mount Rushmore"},
-                  {n:2, emoji:"📝", text:"Cada jugador nomina sus 4 mejores picks"},
-                  {n:3, emoji:"💬", text:"Argumenta y defiende cada uno de tus picks"},
-                  {n:4, emoji:"🎭", text:"Se revelan todos los picks de los jugadores"},
-                  {n:5, emoji:"🚫", text:"Cada jugador tiene 20s para vetar un pick de otro"},
-                  {n:6, emoji:"🗳️", text:"Todos votan por sus 2 favoritos en 40s"},
-                  {n:7, emoji:"🏔️", text:"¡Los 4 más votados forman el Mount Rushmore!"},
-                ].map(s => (
-                  <div key={s.n} style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                    <div style={{
-                      minWidth:28,height:28,borderRadius:"50%",
-                      background:`linear-gradient(135deg,${C.purple},${C.pink})`,
-                      display:"flex",alignItems:"center",justifyContent:"center",
-                      fontWeight:900,fontSize:12,color:"#fff",flexShrink:0
-                    }}>{s.n}</div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
-                      <span style={{fontSize:18}}>{s.emoji}</span>
-                      <span style={{fontSize:13,color:C.textMd,lineHeight:1.4}}>{s.text}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </AccordionPanel>
-            <AccordionPanel icon="⭐" title="Puntuación" defaultOpen={false} style={{marginTop:8}}>
-              <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                {[
-                  {pts:2, emoji:"🛡️", color:C.blue,  text:"Tu pick sobrevive al veto"},
-                  {pts:3, emoji:"🤝", color:C.green,  text:"Tu pick coincide con el de otro jugador"},
-                  {pts:5, emoji:"🏆", color:C.gold,   text:"Tu pick queda en el Mount Rushmore final"},
-                ].map(s => (
-                  <div key={s.pts} style={{
-                    display:"flex",alignItems:"center",gap:12,
-                    background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",
-                    border:`1px solid ${s.color}33`
-                  }}>
-                    <div style={{
-                      minWidth:36,height:36,borderRadius:10,
-                      background:`${s.color}22`,border:`1px solid ${s.color}44`,
-                      display:"flex",alignItems:"center",justifyContent:"center",
-                      fontWeight:900,fontSize:18,color:s.color,flexShrink:0
-                    }}>{s.pts}</div>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:C.text}}>{s.emoji} {s.text}</div>
-                      <div style={{fontSize:11,color:C.textSm,marginTop:2}}>{s.pts} puntos</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </AccordionPanel>
-          </div>
-
           {/* Card: nombre + cuántos jugadores */}
           <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
             {/* Name */}
@@ -777,27 +717,71 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
             </div>
 
             {err && <div style={{color:C.red,fontSize:13,marginTop:12,textAlign:"center"}}>{err}</div>}
-
-            {/* Join existing room */}
-            <button onClick={handleJoinClick} style={{
-              marginTop:16, width:"100%", background:"none", border:`1px solid ${C.border}`,
-              borderRadius:12, color:C.textMd, fontSize:13, cursor:"pointer", padding:"10px 0",
-              transition:"all 0.15s"
-            }}
-              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.purple;e.currentTarget.style.color=C.purpleLt;}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMd;}}
-            >
-              ¿Ya tienes sala? Unirse →
-            </button>
           </Card>
+
+          {/* Accordions below the card */}
+          <div style={{width:"100%",maxWidth:420,marginTop:16}}>
+            <AccordionPanel icon="📖" title="¿Cómo se juega?" defaultOpen={false}>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  {n:1, emoji:"🎯", text:"El host elige el tema del Mount Rushmore"},
+                  {n:2, emoji:"📝", text:"Cada jugador nomina sus 4 mejores picks"},
+                  {n:3, emoji:"💬", text:"Argumenta y defiende cada uno de tus picks"},
+                  {n:4, emoji:"🎭", text:"Se revelan todos los picks de los jugadores"},
+                  {n:5, emoji:"🚫", text:"Cada jugador tiene 20s para vetar un pick de otro"},
+                  {n:6, emoji:"🗳️", text:"Todos votan por sus 2 favoritos en 40s"},
+                  {n:7, emoji:"🏔️", text:"¡Los 4 más votados forman el Mount Rushmore!"},
+                ].map(s => (
+                  <div key={s.n} style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                    <div style={{
+                      minWidth:28,height:28,borderRadius:"50%",
+                      background:`linear-gradient(135deg,${C.purple},${C.pink})`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:900,fontSize:12,color:"#fff",flexShrink:0
+                    }}>{s.n}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
+                      <span style={{fontSize:18}}>{s.emoji}</span>
+                      <span style={{fontSize:13,color:C.textMd,lineHeight:1.4}}>{s.text}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AccordionPanel>
+            <AccordionPanel icon="⭐" title="Puntuación" defaultOpen={false} style={{marginTop:8}}>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  {pts:2, emoji:"🛡️", color:C.blue,  text:"Tu pick sobrevive al veto"},
+                  {pts:3, emoji:"🤝", color:C.green,  text:"Tu pick coincide con el de otro jugador"},
+                  {pts:5, emoji:"🏆", color:C.gold,   text:"Tu pick queda en el Mount Rushmore final"},
+                ].map(s => (
+                  <div key={s.pts} style={{
+                    display:"flex",alignItems:"center",gap:12,
+                    background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",
+                    border:`1px solid ${s.color}33`
+                  }}>
+                    <div style={{
+                      minWidth:36,height:36,borderRadius:10,
+                      background:`${s.color}22`,border:`1px solid ${s.color}44`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:900,fontSize:18,color:s.color,flexShrink:0
+                    }}>{s.pts}</div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:C.text}}>{s.emoji} {s.text}</div>
+                      <div style={{fontSize:11,color:C.textSm,marginTop:2}}>{s.pts} puntos</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AccordionPanel>
+          </div>
         </>
       )}
 
-      {/* ── STEP: AVATAR ─ avatar + nombre + crear/unirse */}
+      {/* ── STEP: AVATAR ─ avatar + botones de acción */}
       {step === "avatar" && (
         <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
           {/* Avatar picker */}
-          <div style={{marginBottom:20}}>
+          <div style={{marginBottom:24}}>
             <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:8}}>Tu avatar</div>
             <div style={{display:"flex",gap:10,alignItems:"center"}}>
               <Avatar emoji={emoji} color={color} size={56}
@@ -825,58 +809,70 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
             </div>
           </div>
 
-          {/* Name */}
-          <div style={{marginBottom:16}}>
-            <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:6}}>Tu nombre</div>
-            <input
-              value={name} onChange={e=>setName(e.target.value)}
-              onKeyDown={e=>e.key==="Enter"&&(tab==="create"?handleCreate():handleJoin())}
-              placeholder="¿Cómo te llamas?"
-              style={{
-                width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
-                borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
-                boxSizing:"border-box"
-              }}
-              maxLength={20}
-            />
+          {err && <div style={{color:C.red,fontSize:13,marginBottom:12,textAlign:"center"}}>{err}</div>}
+
+          {/* Action buttons */}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {chosenCount === 1 ? (
+              /* Solo play: single Empezar button */
+              <Btn size="lg" style={{width:"100%"}} onClick={handleCreate} disabled={loading}>
+                {loading ? <Spinner/> : "🚀 Empezar"}
+              </Btn>
+            ) : (
+              /* Multiplayer: Crear sala + Unirse */
+              <>
+                <Btn size="lg" style={{width:"100%"}} onClick={handleCreate} disabled={loading}>
+                  {loading ? <Spinner/> : "🚀 Crear sala"}
+                </Btn>
+                <button onClick={()=>{setErr("");setStep("join");}} style={{
+                  width:"100%", padding:"13px 0", borderRadius:14, fontWeight:600, fontSize:15,
+                  background:"rgba(255,255,255,0.06)", color:C.text,
+                  border:`1px solid ${C.border}`, cursor:"pointer", transition:"all 0.15s"
+                }}
+                  onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)";e.currentTarget.style.borderColor=C.purple;}}
+                  onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.borderColor=C.border;}}
+                >🎮 Unirse a una sala</button>
+              </>
+            )}
           </div>
-
-          {/* Tabs */}
-          <div style={{display:"flex",gap:6,marginBottom:16}}>
-            {["create","join"].map(t => (
-              <button key={t} onClick={()=>{setTab(t);setErr("");}} style={{
-                flex:1, padding:"9px 0", borderRadius:10, fontWeight:600, fontSize:14,
-                background:tab===t?C.purple:"rgba(255,255,255,0.06)",
-                color:tab===t?"#fff":C.textMd,
-                border:`1px solid ${tab===t?C.purple:C.border}`, cursor:"pointer"
-              }}>
-                {t==="create" ? "Crear sala" : "Unirse"}
-              </button>
-            ))}
-          </div>
-
-          {tab === "join" && (
-            <input
-              value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
-              onKeyDown={e=>e.key==="Enter"&&handleJoin()}
-              placeholder="Código de sala (ej. XK4P2)"
-              style={{
-                width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
-                borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
-                marginBottom:12, letterSpacing:3, textAlign:"center", fontWeight:700,
-                boxSizing:"border-box"
-              }}
-              maxLength={5}
-            />
-          )}
-
-          {err && <div style={{color:C.red,fontSize:13,marginBottom:10,textAlign:"center"}}>{err}</div>}
-
-          <Btn size="lg" style={{width:"100%"}} onClick={tab==="create"?handleCreate:handleJoin} disabled={loading}>
-            {loading ? <Spinner/> : tab==="create" ? "🚀 Crear sala" : "🎮 Unirse"}
-          </Btn>
 
           <button onClick={()=>setStep("setup")} style={{
+            marginTop:14,width:"100%",background:"none",border:"none",
+            color:C.textSm,fontSize:13,cursor:"pointer",padding:8
+          }}>← Volver</button>
+        </Card>
+      )}
+
+      {/* ── STEP: JOIN ─ ingresar código de sala */}
+      {step === "join" && (
+        <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:32,marginBottom:6}}>🎮</div>
+            <div style={{fontWeight:800,fontSize:18,color:C.text,marginBottom:4}}>Unirse a una sala</div>
+            <div style={{fontSize:13,color:C.textSm}}>Ingresa el código que te compartieron</div>
+          </div>
+
+          <input
+            value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
+            onKeyDown={e=>e.key==="Enter"&&handleJoin()}
+            placeholder="XK4P2"
+            autoFocus
+            style={{
+              width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
+              borderRadius:12, padding:"14px 16px", color:C.text, fontSize:22, outline:"none",
+              marginBottom:16, letterSpacing:6, textAlign:"center", fontWeight:900,
+              boxSizing:"border-box"
+            }}
+            maxLength={5}
+          />
+
+          {err && <div style={{color:C.red,fontSize:13,marginBottom:12,textAlign:"center"}}>{err}</div>}
+
+          <Btn size="lg" style={{width:"100%"}} onClick={handleJoin} disabled={loading}>
+            {loading ? <Spinner/> : "🎮 Unirse"}
+          </Btn>
+
+          <button onClick={()=>{setErr("");setStep("avatar");}} style={{
             marginTop:14,width:"100%",background:"none",border:"none",
             color:C.textSm,fontSize:13,cursor:"pointer",padding:8
           }}>← Volver</button>
@@ -2370,6 +2366,8 @@ function RomaRush() {
 // Mount
 ReactDOM.createRoot(document.getElementById("root")).render(<RomaRush/>);
 
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(React.createElement(App));
 </script>
 </body>
 </html>
