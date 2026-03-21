@@ -588,30 +588,40 @@ function AccordionPanel({ icon, title, children, defaultOpen=false, style={} }) 
 
 // ─── HOME ────────────────────────────────────────────────────────
 function HomeScreen({ onCreateRoom, onJoinRoom }) {
-  const [name, setName]         = useState("");
-  const [emoji, setEmoji]       = useState("😎");
-  const [color, setColor]       = useState("#7C3AED");
-  const [tab, setTab]           = useState("create"); // create | join
-  const [step, setStep]         = useState("setup"); // setup | chooseCount
-  const [joinCode, setJoinCode] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [err, setErr]           = useState("");
+  const [name, setName]               = useState("");
+  const [emoji, setEmoji]             = useState("😎");
+  const [color, setColor]             = useState("#7C3AED");
+  const [tab, setTab]                 = useState("create"); // create | join
+  const [step, setStep]               = useState("setup"); // setup | avatar
+  const [chosenCount, setChosenCount] = useState(1);
+  const [joinCode, setJoinCode]       = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [err, setErr]                 = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sala = params.get("sala");
-    if (sala) { setJoinCode(sala.toUpperCase()); setTab("join"); }
+    if (sala) { setJoinCode(sala.toUpperCase()); setTab("join"); setStep("avatar"); }
   }, []);
 
-  function handleCreateClick() {
+  function handleChooseCount(numPlayers) {
     if (!name.trim()) { setErr("Escribe tu nombre"); return; }
     setErr("");
-    setStep("chooseCount");
+    setChosenCount(numPlayers);
+    setStep("avatar");
   }
 
-  async function handleChooseCount(numPlayers) {
-    setLoading(true);
-    await onCreateRoom(name.trim(), emoji, color, numPlayers);
+  function handleJoinClick() {
+    if (!name.trim()) { setErr("Escribe tu nombre"); return; }
+    setErr("");
+    setTab("join");
+    setStep("avatar");
+  }
+
+  async function handleCreate() {
+    if (!name.trim()) { setErr("Escribe tu nombre"); return; }
+    setLoading(true); setErr("");
+    await onCreateRoom(name.trim(), emoji, color, chosenCount);
     setLoading(false);
   }
 
@@ -650,205 +660,231 @@ function HomeScreen({ onCreateRoom, onJoinRoom }) {
         <p style={{color:C.textSm,marginTop:6,fontSize:15}}>El juego del Mount Rushmore</p>
       </div>
 
-      {/* ── STEP: CHOOSE COUNT ────────────────────────────── */}
-      {/* Accordion panels - only show in setup step */}
+      {/* ── STEP: SETUP ─ nombre + cuántos jugadores + instrucciones */}
       {step === "setup" && (
-        <div style={{width:"100%",maxWidth:420,marginBottom:16}}>
-          <AccordionPanel 
-            icon="📖" 
-            title="¿Cómo se juega?" 
-            defaultOpen={false}
-          >
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {[
-                {n:1, emoji:"🎯", text:"El host elige el tema del Mount Rushmore"},
-                {n:2, emoji:"📝", text:"Cada jugador nomina sus 4 mejores picks"},
-                {n:3, emoji:"💬", text:"Argumenta y defiende cada uno de tus picks"},
-                {n:4, emoji:"🎭", text:"Se revelan todos los picks de los jugadores"},
-                {n:5, emoji:"🚫", text:"Cada jugador tiene 20s para vetar un pick de otro"},
-                {n:6, emoji:"🗳️", text:"Todos votan por sus 2 favoritos en 40s"},
-                {n:7, emoji:"🏔️", text:"¡Los 4 más votados forman el Mount Rushmore!"},
-              ].map(s => (
-                <div key={s.n} style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                  <div style={{
-                    minWidth:28,height:28,borderRadius:"50%",
-                    background:`linear-gradient(135deg,${C.purple},${C.pink})`,
-                    display:"flex",alignItems:"center",justifyContent:"center",
-                    fontWeight:900,fontSize:12,color:"#fff",flexShrink:0
-                  }}>{s.n}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
-                    <span style={{fontSize:18}}>{s.emoji}</span>
-                    <span style={{fontSize:13,color:C.textMd,lineHeight:1.4}}>{s.text}</span>
+        <>
+          {/* Accordions */}
+          <div style={{width:"100%",maxWidth:420,marginBottom:16}}>
+            <AccordionPanel icon="📖" title="¿Cómo se juega?" defaultOpen={false}>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  {n:1, emoji:"🎯", text:"El host elige el tema del Mount Rushmore"},
+                  {n:2, emoji:"📝", text:"Cada jugador nomina sus 4 mejores picks"},
+                  {n:3, emoji:"💬", text:"Argumenta y defiende cada uno de tus picks"},
+                  {n:4, emoji:"🎭", text:"Se revelan todos los picks de los jugadores"},
+                  {n:5, emoji:"🚫", text:"Cada jugador tiene 20s para vetar un pick de otro"},
+                  {n:6, emoji:"🗳️", text:"Todos votan por sus 2 favoritos en 40s"},
+                  {n:7, emoji:"🏔️", text:"¡Los 4 más votados forman el Mount Rushmore!"},
+                ].map(s => (
+                  <div key={s.n} style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                    <div style={{
+                      minWidth:28,height:28,borderRadius:"50%",
+                      background:`linear-gradient(135deg,${C.purple},${C.pink})`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:900,fontSize:12,color:"#fff",flexShrink:0
+                    }}>{s.n}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:8,paddingTop:4}}>
+                      <span style={{fontSize:18}}>{s.emoji}</span>
+                      <span style={{fontSize:13,color:C.textMd,lineHeight:1.4}}>{s.text}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </AccordionPanel>
-          <AccordionPanel 
-            icon="⭐" 
-            title="Puntuación" 
-            defaultOpen={false}
-            style={{marginTop:8}}
-          >
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {[
-                {pts:2, emoji:"🛡️", color:C.blue,    text:"Tu pick sobrevive al veto"},
-                {pts:3, emoji:"🤝", color:C.green,   text:"Tu pick coincide con el de otro jugador"},
-                {pts:5, emoji:"🏆", color:C.gold,    text:"Tu pick queda en el Mount Rushmore final"},
-              ].map(s => (
-                <div key={s.pts} style={{
-                  display:"flex",alignItems:"center",gap:12,
-                  background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",
-                  border:`1px solid ${s.color}33`
-                }}>
-                  <div style={{
-                    minWidth:36,height:36,borderRadius:10,
-                    background:`${s.color}22`,border:`1px solid ${s.color}44`,
-                    display:"flex",alignItems:"center",justifyContent:"center",
-                    fontWeight:900,fontSize:18,color:s.color,flexShrink:0
-                  }}>{s.pts}</div>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:C.text}}>{s.emoji} {s.text}</div>
-                    <div style={{fontSize:11,color:C.textSm,marginTop:2}}>{s.pts} puntos</div>
+                ))}
+              </div>
+            </AccordionPanel>
+            <AccordionPanel icon="⭐" title="Puntuación" defaultOpen={false} style={{marginTop:8}}>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {[
+                  {pts:2, emoji:"🛡️", color:C.blue,  text:"Tu pick sobrevive al veto"},
+                  {pts:3, emoji:"🤝", color:C.green,  text:"Tu pick coincide con el de otro jugador"},
+                  {pts:5, emoji:"🏆", color:C.gold,   text:"Tu pick queda en el Mount Rushmore final"},
+                ].map(s => (
+                  <div key={s.pts} style={{
+                    display:"flex",alignItems:"center",gap:12,
+                    background:"rgba(255,255,255,0.04)",borderRadius:10,padding:"10px 12px",
+                    border:`1px solid ${s.color}33`
+                  }}>
+                    <div style={{
+                      minWidth:36,height:36,borderRadius:10,
+                      background:`${s.color}22`,border:`1px solid ${s.color}44`,
+                      display:"flex",alignItems:"center",justifyContent:"center",
+                      fontWeight:900,fontSize:18,color:s.color,flexShrink:0
+                    }}>{s.pts}</div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:C.text}}>{s.emoji} {s.text}</div>
+                      <div style={{fontSize:11,color:C.textSm,marginTop:2}}>{s.pts} puntos</div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </AccordionPanel>
+          </div>
+
+          {/* Card: nombre + cuántos jugadores */}
+          <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
+            {/* Name */}
+            <div style={{marginBottom:20}}>
+              <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:6}}>Tu nombre</div>
+              <input
+                value={name} onChange={e=>setName(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&document.activeElement.blur()}
+                placeholder="¿Cómo te llamas?"
+                style={{
+                  width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
+                  borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
+                  boxSizing:"border-box"
+                }}
+                maxLength={20} autoFocus
+              />
             </div>
-          </AccordionPanel>
-        </div>
+
+            {/* Player count */}
+            <div style={{marginBottom:4}}>
+              <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:4}}>¿Cuántos jugadores son?</div>
+              <p style={{color:C.textSm,fontSize:12,margin:"0 0 12px 0"}}>Los espacios restantes los llena la IA</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {PLAYER_OPTIONS.map(opt => (
+                  <button key={opt.num} onClick={()=>handleChooseCount(opt.num)}
+                    style={{
+                      background:"rgba(255,255,255,0.06)", border:`1px solid ${C.border}`,
+                      borderRadius:14, padding:"14px 18px", cursor:"pointer",
+                      display:"flex", alignItems:"center", justifyContent:"space-between",
+                      transition:"all 0.15s",
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)";e.currentTarget.style.borderColor=C.purple;}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.borderColor=C.border;}}
+                  >
+                    <div style={{display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{
+                        width:36,height:36,borderRadius:"50%",
+                        background:`linear-gradient(135deg,${C.purple},${C.pink})`,
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        fontWeight:900,fontSize:16,color:"#fff"
+                      }}>{opt.num}</div>
+                      <div style={{textAlign:"left"}}>
+                        <div style={{fontWeight:700,fontSize:15,color:C.text}}>{opt.label}</div>
+                        <div style={{fontSize:12,color:C.textSm,marginTop:1}}>{opt.desc}</div>
+                      </div>
+                    </div>
+                    {opt.bots > 0 && (
+                      <div style={{
+                        background:`${C.purple}22`, border:`1px solid ${C.purple}44`,
+                        borderRadius:8,padding:"3px 10px",fontSize:11,color:C.purpleLt,fontWeight:600
+                      }}>+{opt.bots} 🤖</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {err && <div style={{color:C.red,fontSize:13,marginTop:12,textAlign:"center"}}>{err}</div>}
+
+            {/* Join existing room */}
+            <button onClick={handleJoinClick} style={{
+              marginTop:16, width:"100%", background:"none", border:`1px solid ${C.border}`,
+              borderRadius:12, color:C.textMd, fontSize:13, cursor:"pointer", padding:"10px 0",
+              transition:"all 0.15s"
+            }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor=C.purple;e.currentTarget.style.color=C.purpleLt;}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor=C.border;e.currentTarget.style.color=C.textMd;}}
+            >
+              ¿Ya tienes sala? Unirse →
+            </button>
+          </Card>
+        </>
       )}
 
-      step === "chooseCount" ? (
+      {/* ── STEP: AVATAR ─ avatar + nombre + crear/unirse */}
+      {step === "avatar" && (
         <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
-          <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{fontSize:32,marginBottom:6}}>👥</div>
-            <h2 style={{fontSize:20,fontWeight:800}}>¿Cuántos jugadores son?</h2>
-            <p style={{color:C.textSm,fontSize:13,marginTop:4}}>Los espacios restantes los llena la IA</p>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            {PLAYER_OPTIONS.map(opt => (
-              <button key={opt.num} onClick={()=>handleChooseCount(opt.num)}
-                disabled={loading}
-                style={{
-                  background:"rgba(255,255,255,0.06)", border:`1px solid ${C.border}`,
-                  borderRadius:14, padding:"14px 18px", cursor:"pointer",
-                  display:"flex", alignItems:"center", justifyContent:"space-between",
-                  transition:"all 0.15s", opacity:loading?0.5:1,
-                }}
-                onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,0.12)";e.currentTarget.style.borderColor=C.purple;}}
-                onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,0.06)";e.currentTarget.style.borderColor=C.border;}}
-              >
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{
-                    width:36,height:36,borderRadius:"50%",
-                    background:`linear-gradient(135deg,${C.purple},${C.pink})`,
-                    display:"flex",alignItems:"center",justifyContent:"center",
-                    fontWeight:900,fontSize:16,color:"#fff"
-                  }}>{opt.num}</div>
-                  <div style={{textAlign:"left"}}>
-                    <div style={{fontWeight:700,fontSize:15,color:C.text}}>{opt.label}</div>
-                    <div style={{fontSize:12,color:C.textSm,marginTop:1}}>{opt.desc}</div>
-                  </div>
+          {/* Avatar picker */}
+          <div style={{marginBottom:20}}>
+            <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:8}}>Tu avatar</div>
+            <div style={{display:"flex",gap:10,alignItems:"center"}}>
+              <Avatar emoji={emoji} color={color} size={56}
+                style={{border:`3px solid ${color}55`,flexShrink:0}}/>
+              <div>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
+                  {AVATAR_EMOJIS.map(e => (
+                    <button key={e} onClick={()=>setEmoji(e)} style={{
+                      fontSize:20, background:emoji===e?"rgba(255,255,255,0.15)":"transparent",
+                      border:emoji===e?`1px solid ${C.border}`:"1px solid transparent",
+                      borderRadius:6, cursor:"pointer", padding:"3px 5px"
+                    }}>{e}</button>
+                  ))}
                 </div>
-                {opt.bots > 0 && (
-                  <div style={{
-                    background:`${C.purple}22`, border:`1px solid ${C.purple}44`,
-                    borderRadius:8,padding:"3px 10px",fontSize:11,color:C.purpleLt,fontWeight:600
-                  }}>+{opt.bots} 🤖</div>
-                )}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {AVATAR_COLORS.map(c => (
+                    <button key={c} onClick={()=>setColor(c)} style={{
+                      width:24,height:24,borderRadius:"50%",background:c,border:"none",
+                      cursor:"pointer", outline:color===c?`2px solid white`:"none",
+                      outlineOffset:2
+                    }}/>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Name */}
+          <div style={{marginBottom:16}}>
+            <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:6}}>Tu nombre</div>
+            <input
+              value={name} onChange={e=>setName(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&(tab==="create"?handleCreate():handleJoin())}
+              placeholder="¿Cómo te llamas?"
+              style={{
+                width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
+                borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
+                boxSizing:"border-box"
+              }}
+              maxLength={20}
+            />
+          </div>
+
+          {/* Tabs */}
+          <div style={{display:"flex",gap:6,marginBottom:16}}>
+            {["create","join"].map(t => (
+              <button key={t} onClick={()=>{setTab(t);setErr("");}} style={{
+                flex:1, padding:"9px 0", borderRadius:10, fontWeight:600, fontSize:14,
+                background:tab===t?C.purple:"rgba(255,255,255,0.06)",
+                color:tab===t?"#fff":C.textMd,
+                border:`1px solid ${tab===t?C.purple:C.border}`, cursor:"pointer"
+              }}>
+                {t==="create" ? "Crear sala" : "Unirse"}
               </button>
             ))}
           </div>
+
+          {tab === "join" && (
+            <input
+              value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
+              onKeyDown={e=>e.key==="Enter"&&handleJoin()}
+              placeholder="Código de sala (ej. XK4P2)"
+              style={{
+                width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
+                borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
+                marginBottom:12, letterSpacing:3, textAlign:"center", fontWeight:700,
+                boxSizing:"border-box"
+              }}
+              maxLength={5}
+            />
+          )}
+
+          {err && <div style={{color:C.red,fontSize:13,marginBottom:10,textAlign:"center"}}>{err}</div>}
+
+          <Btn size="lg" style={{width:"100%"}} onClick={tab==="create"?handleCreate:handleJoin} disabled={loading}>
+            {loading ? <Spinner/> : tab==="create" ? "🚀 Crear sala" : "🎮 Unirse"}
+          </Btn>
+
           <button onClick={()=>setStep("setup")} style={{
             marginTop:14,width:"100%",background:"none",border:"none",
             color:C.textSm,fontSize:13,cursor:"pointer",padding:8
           }}>← Volver</button>
         </Card>
-      ) : (
-      /* ── STEP: SETUP ────────────────────────────────── */
-      <Card style={{width:"100%",maxWidth:420}} className="fadeIn">
-        {/* Avatar picker */}
-        <div style={{marginBottom:20}}>
-          <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:8}}>Tu avatar</div>
-          <div style={{display:"flex",gap:10,alignItems:"center"}}>
-            <Avatar emoji={emoji} color={color} size={56}
-              style={{border:`3px solid ${color}55`,flexShrink:0}}/>
-            <div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-                {AVATAR_EMOJIS.map(e => (
-                  <button key={e} onClick={()=>setEmoji(e)} style={{
-                    fontSize:20, background:emoji===e?"rgba(255,255,255,0.15)":"transparent",
-                    border:emoji===e?`1px solid ${C.border}`:"1px solid transparent",
-                    borderRadius:6, cursor:"pointer", padding:"3px 5px"
-                  }}>{e}</button>
-                ))}
-              </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {AVATAR_COLORS.map(c => (
-                  <button key={c} onClick={()=>setColor(c)} style={{
-                    width:24,height:24,borderRadius:"50%",background:c,border:"none",
-                    cursor:"pointer", outline:color===c?`2px solid white`:"none",
-                    outlineOffset:2
-                  }}/>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Name */}
-        <div style={{marginBottom:16}}>
-          <div style={{color:C.textMd,fontSize:13,fontWeight:600,marginBottom:6}}>Tu nombre</div>
-          <input
-            value={name} onChange={e=>setName(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&(tab==="create"?handleCreateClick():handleJoin())}
-            placeholder="¿Cómo te llamas?"
-            style={{
-              width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
-              borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none"
-            }}
-            maxLength={20} autoFocus
-          />
-        </div>
-
-        {/* Tabs */}
-        <div style={{display:"flex",gap:6,marginBottom:16}}>
-          {["create","join"].map(t => (
-            <button key={t} onClick={()=>{setTab(t);setErr("");}} style={{
-              flex:1, padding:"9px 0", borderRadius:10, fontWeight:600, fontSize:14,
-              background:tab===t?C.purple:"rgba(255,255,255,0.06)",
-              color:tab===t?"#fff":C.textMd,
-              border:`1px solid ${tab===t?C.purple:C.border}`, cursor:"pointer"
-            }}>
-              {t==="create" ? "Crear sala" : "Unirse"}
-            </button>
-          ))}
-        </div>
-
-        {tab === "join" && (
-          <input
-            value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())}
-            onKeyDown={e=>e.key==="Enter"&&handleJoin()}
-            placeholder="Código de sala (ej. XK4P2)"
-            style={{
-              width:"100%", background:"rgba(255,255,255,0.07)", border:`1px solid ${C.border}`,
-              borderRadius:12, padding:"11px 16px", color:C.text, fontSize:15, outline:"none",
-              marginBottom:12, letterSpacing:3, textAlign:"center", fontWeight:700
-            }}
-            maxLength={5}
-          />
-        )}
-
-        {err && <div style={{color:C.red,fontSize:13,marginBottom:10,textAlign:"center"}}>{err}</div>}
-
-        <Btn size="lg" style={{width:"100%"}} onClick={tab==="create"?handleCreateClick:handleJoin} disabled={loading}>
-          {loading ? <Spinner/> : tab==="create" ? "🚀 Crear sala" : "🎮 Unirse"}
-        </Btn>
-      </Card>
       )}
 
       <p style={{color:C.textSm,fontSize:12,marginTop:20,textAlign:"center"}}>
-        Máx 4 jugadores · Gratis para siempre 🎉
+        3 partidas gratis · Después $99 MXN/mes Pro 🚀
       </p>
     </div>
   );
